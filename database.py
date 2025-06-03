@@ -15,5 +15,5 @@ SessionLocal = sessionmaker(
     expire_on_commit=False
 )
 
-# Базовый класс для моделей
+
 Base = declarative_base()
