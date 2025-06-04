@@ -5,7 +5,6 @@ from datetime import datetime
 class NoteCreate(BaseModel):
     user_id: int
     content: str
-
 #ответ API
 class Note(BaseModel):
     id: int
