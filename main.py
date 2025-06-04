@@ -36,11 +36,9 @@ async def get_db():
 async def create_note(note: schemas.NoteCreate, db: AsyncSession = Depends(get_db)):
     return await crud.create_note(db, note)
 
-
 @app.get("/notes/{user_id}", response_model=list[schemas.Note])
 async def get_notes(user_id: int, db: AsyncSession = Depends(get_db)):
     return await crud.get_notes_by_user(db, user_id)
-
 
 @app.delete("/notes/{note_id}")
 async def delete_note(note_id: int, db: AsyncSession = Depends(get_db)):
