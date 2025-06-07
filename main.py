@@ -40,9 +40,11 @@ async def create_note(note: schemas.NoteCreate, db: AsyncSession = Depends(get_d
 async def get_notes(user_id: int, db: AsyncSession = Depends(get_db)):
     return await crud.get_notes_by_user(db, user_id)
 
-@app.delete("/notes/{note_id}")
+from fastapi.responses import Response
+
+@app.delete("/notes/{note_id}", status_code=204)
 async def delete_note(note_id: int, db: AsyncSession = Depends(get_db)):
     deleted = await crud.delete_note(db, note_id)
     if deleted == 0:
         raise HTTPException(status_code=404, detail="Note not found")
-    return {"message": "Note deleted"}
+    return Response(status_code=204)
