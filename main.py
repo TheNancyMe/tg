@@ -1,50 +1,70 @@
- 
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.middleware.cors import CORSMiddleware
-from . import models, schemas, crud
-from .database import SessionLocal, engine, Base
+from aiogram import Bot, Dispatcher, F, types
+from aiogram.types import Message
+from aiogram.enums import ParseMode
+from aiogram.filters import Command
+from aiogram.utils.markdown import hbold
 
-app = FastAPI(
-    title="Note API",
-    description="API для создания, получения и удаления заметок",
-    version="1.0.0"
-)
+from bot.config import BOT_TOKEN
+from bot.utils import add_note, list_notes, delete_note
 
+import asyncio
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher()
 
 
-@app.on_event("startup")
-async def startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+@dp.message(Command("start"))
+async def cmd_start(message: Message):
+    await message.answer("Привет! Я бот для заметок.\nДоступные команды:\n/add [текст]\n/list\n/delete [id]")
 
 
-async def get_db():
-    async with SessionLocal() as session:
-        yield session
+@dp.message(Command("add"))
+async def cmd_add(message: Message):
+    user_id = message.from_user.id
+    content = message.text.replace("/add", "", 1).strip()
+
+    if not content:
+        await message.answer("Использование: /add [текст заметки]")
+        return
+
+    note = await add_note(user_id=user_id, content=content)
+    await message.answer(f"Заметка добавлена:\n{note['content']}")
 
 
-@app.post("/notes/", response_model=schemas.Note)
-async def create_note(note: schemas.NoteCreate, db: AsyncSession = Depends(get_db)):
-    return await crud.create_note(db, note)
+@dp.message(Command("list"))
+async def cmd_list(message: Message):
+    user_id = message.from_user.id
+    notes = await list_notes(user_id)
 
-@app.get("/notes/{user_id}", response_model=list[schemas.Note])
-async def get_notes(user_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.get_notes_by_user(db, user_id)
+    if not notes:
+        await message.answer("У тебя пока нет заметок.")
+        return
 
-from fastapi.responses import Response
+    text = "Твои заметки:\n\n"
+    for note in notes:
+        text += f"{hbold(note['id'])}: {note['content']}\n"
 
-@app.delete("/notes/{note_id}", status_code=204)
-async def delete_note(note_id: int, db: AsyncSession = Depends(get_db)):
-    deleted = await crud.delete_note(db, note_id)
-    if deleted == 0:
-        raise HTTPException(status_code=404, detail="Note not found")
-    return Response(status_code=204)
+    await message.answer(text)
+
+
+@dp.message(Command("delete"))
+async def cmd_delete(message: Message):
+    parts = message.text.strip().split()
+    if len(parts) != 2 or not parts[1].isdigit():
+        await message.answer("Использование: /delete [id]")
+        return
+
+    note_id = int(parts[1])
+    success = await delete_note(note_id)
+
+    if success:
+        await message.answer("Заметка удалена.")
+    else:
+        await message.answer("Заметка не найдена.")
+
+
+async def main():
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
