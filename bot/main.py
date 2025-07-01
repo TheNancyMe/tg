@@ -1,23 +1,47 @@
-from aiogram import Bot, Dispatcher, F, types
-from aiogram.types import Message
+import asyncio
+from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.markdown import hbold
 
 from config import BOT_TOKEN
 from utils import add_note, list_notes, delete_note
 
-import asyncio
-
 bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
+# Reply клавиатура с понятными кнопками
+main_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="Добавить заметку")],
+        [KeyboardButton(text="Список заметок")],
+        [KeyboardButton(text="Удалить заметку")]
+    ],
+    resize_keyboard=True
+)
+
+from aiogram.types import BotCommand
+
+async def set_commands(bot: Bot):
+    commands = [
+        BotCommand(command="add", description="Добавить заметку"),
+        BotCommand(command="list", description="Список заметок"),
+        BotCommand(command="delete", description="Удалить заметку"),
+        BotCommand(command="start", description="Перезапустить бота"),
+    ]
+    await bot.set_my_commands(commands)
 
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
-    await message.answer("Привет! Я бот для заметок.\nДоступные команды:\n/add [текст]\n/list\n/delete [id]")
+    await message.answer("Привет! Выбери действие:", reply_markup=main_kb)
 
+# Обработка нажатия кнопки "Добавить заметку"
+@dp.message(F.text == "Добавить заметку")
+async def add_note_handler(message: Message):
+    await message.answer("Напиши текст заметки в формате:\n/add Текст заметки")
 
+# Обработка команды добавления заметки
 @dp.message(Command("add"))
 async def cmd_add(message: Message):
     user_id = message.from_user.id
@@ -30,9 +54,9 @@ async def cmd_add(message: Message):
     note = await add_note(user_id=user_id, content=content)
     await message.answer(f"Заметка добавлена:\n{note['content']}")
 
-
-@dp.message(Command("list"))
-async def cmd_list(message: Message):
+# Обработка нажатия кнопки "Список заметок"
+@dp.message(F.text == "Список заметок")
+async def list_notes_handler(message: Message):
     user_id = message.from_user.id
     notes = await list_notes(user_id)
 
@@ -46,7 +70,12 @@ async def cmd_list(message: Message):
 
     await message.answer(text)
 
+# Обработка нажатия кнопки "Удалить заметку"
+@dp.message(F.text == "Удалить заметку")
+async def delete_note_handler(message: Message):
+    await message.answer("Чтобы удалить заметку, напиши:\n/delete ID_заметки")
 
+# Обработка команды удаления заметки
 @dp.message(Command("delete"))
 async def cmd_delete(message: Message):
     parts = message.text.strip().split()
@@ -63,7 +92,9 @@ async def cmd_delete(message: Message):
         await message.answer("Заметка не найдена.")
 
 
+
 async def main():
+    await set_commands(bot)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
