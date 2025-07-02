@@ -48,7 +48,7 @@ async def cmd_add(message: Message):
     content = message.text.replace("/add", "", 1).strip()
 
     if not content:
-        await message.answer("Использование: /add [текст заметки]")
+        await message.answer("Использование: /add текст заметки")
         return
 
     note = await add_note(user_id=user_id, content=content)
@@ -73,14 +73,14 @@ async def list_notes_handler(message: Message):
 # Обработка нажатия кнопки "Удалить заметку"
 @dp.message(F.text == "Удалить заметку")
 async def delete_note_handler(message: Message):
-    await message.answer("Чтобы удалить заметку, напиши:\n/delete ID_заметки")
+    await message.answer("Чтобы удалить заметку, напиши:\n/delete id_заметки")
 
 # Обработка команды удаления заметки
 @dp.message(Command("delete"))
 async def cmd_delete(message: Message):
     parts = message.text.strip().split()
     if len(parts) != 2 or not parts[1].isdigit():
-        await message.answer("Использование: /delete [id]")
+        await message.answer("Использование: /delete id")
         return
 
     note_id = int(parts[1])
