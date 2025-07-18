@@ -1,17 +1,14 @@
- 
 import httpx
 from config import API_URL
 
-
-async def add_note(user_id: int, content: str):
+async def add_note(user_id: int, title: str, description: str | None = None):
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{API_URL}/notes/",
-            json={"user_id": user_id, "content": content}
+            json={"user_id": user_id, "title": title, "description": description}
         )
         response.raise_for_status()
         return response.json()
-
 
 async def list_notes(user_id: int):
     async with httpx.AsyncClient() as client:
@@ -19,6 +16,11 @@ async def list_notes(user_id: int):
         response.raise_for_status()
         return response.json()
 
+async def get_note(note_id: int):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{API_URL}/note/{note_id}")
+        response.raise_for_status()
+        return response.json()
 
 async def delete_note(note_id: int):
     async with httpx.AsyncClient() as client:
@@ -27,3 +29,4 @@ async def delete_note(note_id: int):
             return False
         response.raise_for_status()
         return True
+
