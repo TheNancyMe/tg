@@ -1,4 +1,3 @@
- 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete
@@ -17,8 +16,13 @@ async def get_notes_by_user(db: AsyncSession, user_id: int):
     result = await db.execute(select(models.Note).where(models.Note.user_id == user_id))
     return result.scalars().all()
 
+# Получение одной заметки по id
+async def get_note_by_id(db: AsyncSession, note_id: int):
+    result = await db.execute(select(models.Note).where(models.Note.id == note_id))
+    return result.scalar_one_or_none()
+
 # Удаление заметки по id
 async def delete_note(db: AsyncSession, note_id: int):
     result = await db.execute(delete(models.Note).where(models.Note.id == note_id))
     await db.commit()
-    return result.rowcount  # сколько строк удалено
+    return result.rowcount
