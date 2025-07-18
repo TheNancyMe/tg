@@ -1,17 +1,19 @@
 from pydantic import BaseModel
 from datetime import datetime
 
-#созданиe новой заметки
+# Создание новой заметки
 class NoteCreate(BaseModel):
     user_id: int
-    content: str
+    title: str
+    description: str | None = None
 
-#ответ API
+# Ответ API
 class Note(BaseModel):
     id: int
     user_id: int
-    content: str
+    title: str
+    description: str | None = None
     created_at: datetime
 
     class Config:
-        orm_mode = True  # позволяет работать с объектами SQLAlchemy
+        orm_mode = True
