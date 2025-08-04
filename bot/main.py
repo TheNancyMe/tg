@@ -82,6 +82,14 @@ async def save_note_and_finish(message: Message, state: FSMContext, title: str, 
 
 @dp.message(F.text == "Список заметок")
 async def list_notes_handler(message: Message):
+    def format_datetime(iso_str: str) -> str:
+        try:
+            from datetime import datetime
+            dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+            return dt.strftime("%d.%m.%Y %H:%M")
+        except Exception:
+            return iso_str  # если что-то пойдёт не так — покажем как есть
+
     user_id = message.from_user.id
     notes = await list_notes(user_id)
     if not notes:
@@ -89,7 +97,8 @@ async def list_notes_handler(message: Message):
         return
     text = "Твои заметки:\n\n"
     for note in notes:
-        text += f"{hbold(note['id'])}: {note['title']} ({note['created_at']})\n"
+        formatted_time = format_datetime(note['created_at'])
+        text += f"{hbold(note['id'])}: {note['title']} ({formatted_time})\n"
     text += "\nЧтобы прочитать заметку, напиши: /read id"
     await message.answer(text)
 
@@ -133,4 +142,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
