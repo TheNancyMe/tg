@@ -33,34 +33,29 @@ class ReadNoteState(StatesGroup):
 
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
-    await message.answer("Привет! Выбери действие:", reply_markup=main_kb)
+    await message.answer("Привет, я бот для заметок! ✨ Выберите действие:", reply_markup=main_kb)
 
-@dp.message(F.text == "Добавить заметку")
+@dp.message(F.text == "Добавить заметку➕")
 async def add_note_start(message: Message, state: FSMContext):
-    await message.answer("Введите заголовок заметки или напишите 'отмена' для выхода.")
+    await message.answer("Введите заголовок заметки или напишите 'отмена' для выхода")
     await state.set_state(AddNoteState.waiting_for_title)
 
 @dp.message(AddNoteState.waiting_for_title)
 async def process_title(message: Message, state: FSMContext):
     if message.text.lower() == "отмена":
-        await message.answer("Добавление заметки отменено.", reply_markup=main_kb)
+        await message.answer("❎ Добавление заметки отменено", reply_markup=main_kb)
         await state.clear()
         return
     await state.update_data(title=message.text)
-    await message.answer("Введите описание или 'пропустить':")
+    await message.answer("Введите описание или 'пропустить', если хотите оставить заметку пустой:")
     await state.set_state(AddNoteState.waiting_for_description)
 
-@dp.message(AddNoteState.waiting_for_title)
-async def process_title(message: Message, state: FSMContext):
-    await state.update_data(title=message.text)
-    await message.answer("Введите описание или 'пропустить':")
-    await state.set_state(AddNoteState.waiting_for_description)
 
 @dp.message(AddNoteState.waiting_for_description)
 async def process_description(message: Message, state: FSMContext):
     description = None if message.text.lower() == "пропустить" else message.text
     await state.update_data(description=description)
-    await message.answer("Введите код доступа или 'без кода':")
+    await message.answer("Введите код доступа для заметки или напишите 'без кода':")
     await state.set_state(AddNoteState.waiting_for_passcode)
 
 @dp.message(AddNoteState.waiting_for_passcode)
@@ -74,17 +69,17 @@ async def process_passcode(message: Message, state: FSMContext):
             description=data.get("description"),
             passcode=passcode
         )
-        await message.answer(f"Заметка добавлена:\n<b>{note['title']}</b>", reply_markup=main_kb)
+        await message.answer(f"✅ Заметка добавлена:\n<b>{note['title']}</b>", reply_markup=main_kb)
     except Exception as e:
-        await message.answer(f"Ошибка при сохранении заметки: {e}")
+        await message.answer(f"❓ Ошибка при сохранении заметки: {e}")
     finally:
         await state.clear()
 
-@dp.message(F.text == "Список заметок")
+@dp.message(F.text == "Список заметок📋")
 async def list_notes_handler(message: Message):
     notes = await list_notes(message.from_user.id)
     if not notes:
-        await message.answer("У тебя нет заметок.")
+        await message.answer("У тебя нет заметок")
         return
     text = "Твои заметки:\n\n"
     for note in notes:
@@ -101,7 +96,7 @@ async def cmd_read(message: Message, state: FSMContext):
         await message.answer("Формат: /read ID")
         return
     await state.update_data(note_id=int(parts[1]))
-    await message.answer("Введите код доступа или 'нет':")
+    await message.answer("👀 Введите код доступа или 'нет':")
     await state.set_state(ReadNoteState.waiting_for_passcode)
 
 @dp.message(ReadNoteState.waiting_for_passcode)
@@ -113,21 +108,25 @@ async def process_read_passcode(message: Message, state: FSMContext):
         note = await get_note(note_id, passcode=passcode)
         await message.answer(f"<b>{note['title']}</b>\n\n{note['description'] or '(без описания)'}")
     except PermissionError:
-        await message.answer("Неверный код доступа.")
+        await message.answer("❎ Неверный код доступа")
     except Exception:
-        await message.answer("Заметка не найдена.")
+        await message.answer("❎ Заметка не найдена")
     finally:
         await state.clear()
+
+@dp.message(F.text == "Удалить заметку🗑")
+async def ask_for_note_id_to_delete(message: Message):
+    await message.answer("🗑 Напишите ID заметки, которую хотите удалить (например: /delete 1)")
 
 @dp.message(Command("delete"))
 async def cmd_delete(message: Message):
     parts = message.text.strip().split()
     if len(parts) != 2 or not parts[1].isdigit():
-        await message.answer("Формат: /delete ID")
+        await message.answer("⚠️ Формат: /delete ID (например: /delete 1)")
         return
     note_id = int(parts[1])
     success = await delete_note(note_id)
-    await message.answer("Удалена." if success else "Не найдена.")
+    await message.answer("✅ Заметка удалена" if success else "❎ Заметка не найдена")
 
 async def main():
     await dp.start_polling(bot)
