@@ -1,28 +1,28 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import delete
-from . import models, schemas
+from sqlalchemy.exc import NoResultFound
+from .models import Note
+from .schemas import NoteCreate
 
-# Создание заметки
-async def create_note(db: AsyncSession, note: schemas.NoteCreate):
-    new_note = models.Note(**note.dict())
-    db.add(new_note)
-    await db.commit()
-    await db.refresh(new_note)
+async def create_note(session: AsyncSession, note: NoteCreate) -> Note:
+    new_note = Note(**note.dict())
+    session.add(new_note)
+    await session.commit()
+    await session.refresh(new_note)
     return new_note
 
-# Получение всех заметок пользователя
-async def get_notes_by_user(db: AsyncSession, user_id: int):
-    result = await db.execute(select(models.Note).where(models.Note.user_id == user_id))
+async def get_notes_by_user(session: AsyncSession, user_id: int):
+    result = await session.execute(select(Note).where(Note.user_id == user_id))
     return result.scalars().all()
 
-# Получение одной заметки по id
-async def get_note_by_id(db: AsyncSession, note_id: int):
-    result = await db.execute(select(models.Note).where(models.Note.id == note_id))
-    return result.scalar_one_or_none()
+async def get_note_by_id(session: AsyncSession, note_id: int) -> Note:
+    result = await session.execute(select(Note).where(Note.id == note_id))
+    return result.scalar_one()
 
-# Удаление заметки по id
-async def delete_note(db: AsyncSession, note_id: int):
-    result = await db.execute(delete(models.Note).where(models.Note.id == note_id))
-    await db.commit()
-    return result.rowcount
+async def delete_note_by_id(session: AsyncSession, note_id: int) -> bool:
+    note = await get_note_by_id(session, note_id)
+    if note:
+        await session.delete(note)
+        await session.commit()
+        return True
+    return False
