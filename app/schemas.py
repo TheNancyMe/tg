@@ -1,19 +1,19 @@
 from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime
 
-# Создание новой заметки
 class NoteCreate(BaseModel):
     user_id: int
     title: str
-    description: str | None = None
+    description: Optional[str] = None
+    passcode: Optional[str] = None
 
-# Ответ API
-class Note(BaseModel):
+class NoteOut(BaseModel):
     id: int
-    user_id: int
     title: str
-    description: str | None = None
+    description: Optional[str]
     created_at: datetime
+    passcode: Optional[str] = None
 
     class Config:
         orm_mode = True
